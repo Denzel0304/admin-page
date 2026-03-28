@@ -105,13 +105,22 @@
         async function approveUser(id, name, mac, phone) {
             const prog = document.getElementById(`prog-${id}`).value;
             const rawDate = document.getElementById(`date-${id}`).value;
-            if (!rawDate) return alert("만료일을 선택하세요.");
+            
+            let finalExpiry = "";
 
-            // 날짜 뒤에 23:59:59 붙이기
-            const finalExpiry = `${rawDate} 23:59:59`;
+            if (!rawDate) {
+                // 날짜를 선택하지 않았을 경우: 오늘부터 20년 뒤 계산
+                const today = new Date();
+                const year20 = today.getFullYear() + 20;
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                finalExpiry = `${year20}-${month}-${day} 23:59:59`;
+            } else {
+                // 날짜를 선택했을 경우
+                finalExpiry = `${rawDate} 23:59:59`;
+            }
 
             if (confirm(`${name}님을 [${prog}]으로 승인하시겠습니까?\n만료일: ${finalExpiry}`)) {
-                // 1. Paid 테이블에 저장
                 const { error: insErr } = await supabaseClient.from('Paid').insert([{ 
                     name: name, 
                     phone: phone,
@@ -121,11 +130,10 @@
                 }]);
                 if (insErr) return alert("Paid 테이블 저장 실패: " + insErr.message);
 
-                // 2. MacSending 테이블에서 삭제
                 const { error: delErr } = await supabaseClient.from('MacSending').delete().eq('id', id);
                 if (delErr) return alert("MacSending 삭제 실패: " + delErr.message);
 
-                alert("승인 및 데이터 이동이 완료되었습니다.");
+                alert("승인 완료되었습니다.");
                 loadMacSendingData();
             }
         }
