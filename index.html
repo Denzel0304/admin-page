@@ -7,20 +7,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #1a2a3a; color: #e0eafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 5px; display: flex; justify-content: center; }
-        /* 모바일에서 컨테이너가 꽉 차도록 수정 */
         .container { background-color: #2c3e50; padding: 10px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); width: 100%; max-width: 1000px; text-align: center; box-sizing: border-box; }
         #admin-panel { display: none; width: 100%; }
-        /* 가로 스크롤 영역 최적화 */
         .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; -webkit-overflow-scrolling: touch; border-radius: 8px; background: #34495e; }
-        input, button, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 6px; border: none; box-sizing: border-box; font-size: 14px; }
+        input, button, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 4px; border: none; box-sizing: border-box; font-size: 13px; }
         input, select { background-color: #2c3e50; color: white; border: 1px solid #455a64; }
         button { background-color: #3498db; color: white; font-weight: bold; cursor: pointer; }
-        /* 표 폰트 크기 조절로 가로폭 확보 */
-        table { width: 100%; border-collapse: collapse; min-width: 650px; }
-        th, td { padding: 8px 4px; border: 1px solid #1a2a3a; text-align: center; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 8px 5px; border: 1px solid #1a2a3a; text-align: center; font-size: 12px; }
         th { background-color: #2980b9; white-space: nowrap; }
-        .approve-btn { background-color: #27ae60; width: auto; padding: 6px 12px; margin: 2px 0; color: white; border-radius: 4px; font-size: 12px; }
+        .approve-btn { background-color: #27ae60; width: 80px; padding: 8px; color: white; border-radius: 4px; font-size: 12px; margin: 0; }
         .mac-text { font-family: monospace; font-size: 11px; color: #bdc3c7; word-break: break-all; }
+        .request-text { color: #f1c40f; font-weight: bold; } /* 사용자가 신청한 텍스트 강조 */
     </style>
 </head>
 <body>
@@ -63,7 +61,7 @@
                 return;
             }
 
-            let html = `<table><thead><tr><th>시간</th><th>이름/번호</th><th>맥주소</th><th>설정/승인</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>시간</th><th>이름/번호</th><th>맥주소</th><th>신청 프로그램</th><th>승인 설정</th><th>실행</th></tr></thead><tbody>`;
             
             data.forEach(item => {
                 const rDate = item.date ? new Date(item.date).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
@@ -72,8 +70,8 @@
                     <td>${rDate}</td>
                     <td>${item.name}<br><small>${item.phone || '-'}</small></td>
                     <td class="mac-text">${item.mac_address}</td>
-                    <td>
-                        <select id="prog-${item.id}" style="width:110px; font-size:11px; padding:5px;">
+                    <td class="request-text">${item.program}</td> <td>
+                        <select id="prog-${item.id}" style="width:110px;">
                             <option value="순서">순서</option>
                             <option value="삽입">삽입</option>
                             <option value="단어">단어</option>
@@ -84,8 +82,10 @@
                             <option value="배열서술형">배열서술형</option>
                             <option value="한줄해석">한줄해석</option>
                         </select>
-                        <input type="date" id="date-${item.id}" style="width:110px; font-size:11px; padding:5px;">
-                        <button class="approve-btn" onclick="approveUser('${item.id}','${item.name}','${item.mac_address}')">승인</button>
+                        <input type="date" id="date-${item.id}" style="width:110px;">
+                    </td>
+                    <td>
+                        <button class="approve-btn" onclick="approveUser('${item.id}','${item.name}','${item.mac_address}')">최종 승인</button>
                     </td>
                 </tr>`;
             });
