@@ -55,16 +55,36 @@
         <p>로그인에 성공했습니다. 다음 지시를 기다립니다.</p>
     </div>
     <script>
-        const SECRET_CODE = "4037";
-        function checkPassword() {
-            const input = document.getElementById('admin-password').value;
-            if (input === SECRET_CODE) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-            } else {
-                document.getElementById('login-msg').innerText = "비밀번호가 일치하지 않습니다.";
-            }
-        }
+      const SECRET_CODE = "4037";
+const SB_URL = "https://zkkhzsgaryoraytvsqbf.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2h6c2dhcnlvcmF5dHZzcWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5ODM5OTcsImV4cCI6MjA1MzU1OTk5N30.UJtqcka35dVssnZRuUk6zukfjF9UNX392Shd841GSQk"; 
+
+const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+function checkPassword() {
+    const input = document.getElementById('admin-password').value;
+    if (input === SECRET_CODE) {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        loadMacSendingData();
+    } else {
+        document.getElementById('login-msg').innerText = "비밀번호가 일치하지 않습니다.";
+    }
+}
+
+async function loadMacSendingData() {
+    const { data, error } = await supabaseClient
+        .from('MacSending')
+        .select('*');
+
+    if (error) {
+        alert('데이터를 가져오지 못했습니다: ' + error.message);
+        return;
+    }
+
+    const panel = document.getElementById('admin-panel');
+    panel.innerHTML = `<h2>관리자 페이지</h2><p>현재 ${data.length}명의 요청이 있습니다.</p>`;
+}
     </script>
 </body>
 </html>
