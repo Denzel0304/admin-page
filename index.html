@@ -72,10 +72,12 @@ function checkPassword() {
     }
 }
 // 데이터를 표 형식으로 화면에 그려주는 함수
+// 데이터를 표 형식으로 화면에 그려주는 함수 (연락처, 시간 추가)
 async function loadMacSendingData() {
     const { data, error } = await supabaseClient
         .from('MacSending')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false }); // 최신순 정렬
 
     if (error) {
         alert('데이터 로드 실패: ' + error.message);
@@ -89,24 +91,35 @@ async function loadMacSendingData() {
         html += `<p>현재 대기 중인 요청이 없습니다.</p>`;
     } else {
         html += `<p style="margin-bottom: 20px;">현재 ${data.length}명의 요청이 있습니다.</p>`;
-        html += `<table style="width:100%; border-collapse: collapse; background-color: #34495e; color: white;">
+        html += `<table style="width:100%; border-collapse: collapse; background-color: #34495e; color: white; font-size: 14px;">
                     <thead>
                         <tr style="background-color: #2980b9;">
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">이름</th>
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">프로그램</th>
+                            <th style="padding: 10px; border: 1px solid #1a2a3a;">신청시간</th>
+                            <th style="padding: 10px; border: 1px solid #1a2a3a;">이름(연락처)</th>
                             <th style="padding: 10px; border: 1px solid #1a2a3a;">맥주소</th>
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">관리</th>
+                            <th style="padding: 10px; border: 1px solid #1a2a3a;">설정 및 승인</th>
                         </tr>
                     </thead>
                     <tbody>`;
         
         data.forEach(item => {
+            // 시간 포맷 변경 (예: 03-28 18:30)
+            const date = new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            
             html += `<tr>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.name}</td>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.program}</td>
+                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${date}</td>
+                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.name}<br>(${item.phone || '번호없음'})</td>
                         <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.mac_address}</td>
                         <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">
-                            <button onclick="approveUser('${item.id}', '${item.name}', '${item.mac_address}', '${item.program}')" style="background-color: #27ae60; padding: 5px 10px; width: auto; margin: 0; color: white; cursor: pointer;">승인</button>
+                            <select id="prog-${item.id}" style="width: 120px; padding: 5px; margin-bottom: 5px;">
+                                <option value="${item.program}">${item.program} (기본)</option>
+                                <option value="Program_A">프로그램 A</option>
+                                <option value="Program_B">프로그램 B</option>
+                                <option value="Premium_Full">프리미엄 전체</option>
+                            </select><br>
+                            <input type="date" id="date-${item.id}" style="width: 120px; padding: 5px; margin-bottom: 5px;"><br>
+                            <button onclick="approveUser('${item.id}', '${item.name}', '${item.mac_address}')" 
+                                    style="background-color: #27ae60; padding: 5px 15px; width: auto; color: white; cursor: pointer; border-radius: 4px;">최종 승인</button>
                         </td>
                     </tr>`;
         });
@@ -115,13 +128,21 @@ async function loadMacSendingData() {
     panel.innerHTML = html;
 }
 
-// '승인' 버튼을 눌렀을 때 실행될 함수
-function approveUser(id, name, mac, program) {
-    if(confirm(`${name} 님을 유료 사용자로 등록할까요?`)) {
-        alert("승인 기능을 구현할 준비가 되었습니다!");
+// 승인 버튼 클릭 시 실행
+function approveUser(id, name, mac) {
+    const selectedProg = document.getElementById(`prog-${id}`).value;
+    const selectedDate = document.getElementById(`date-${id}`).value;
+
+    if (!selectedDate) {
+        alert("만료일을 선택해 주세요.");
+        return;
+    }
+
+    if(confirm(`${name}님을 [${selectedProg}] 프로그램으로, [${selectedDate}]까지 승인하시겠습니까?`)) {
+        alert("이제 이 데이터를 '유료 테이블'로 옮기는 명령을 실행합니다.");
+        // 실제 데이터 이동 로직은 다음 단계에서 Supabase insert/delete로 구현합니다.
     }
 }
-
     </script>
 </body>
 </html>
