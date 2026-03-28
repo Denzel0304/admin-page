@@ -6,139 +6,94 @@
     <title>Admin Management</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background-color: #1a2a3a;
-            color: #e0eafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #2c3e50;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        #admin-panel { display: none; }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 6px;
-            border: none;
-            box-sizing: border-box;
-        }
-        input { background-color: #34495e; color: white; }
-        button {
-            background-color: #3498db;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        body { background-color: #1a2a3a; color: #e0eafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .container { background-color: #2c3e50; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); width: 100%; max-width: 900px; text-align: center; }
+        #admin-panel { display: none; width: 100%; overflow-x: auto; } /* 가로 스크롤 추가 */
+        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
+        input, select { background-color: #34495e; color: white; }
+        button { background-color: #3498db; color: white; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #1a2a3a; text-align: center; font-size: 14px; }
+        th { background-color: #2980b9; }
+        .approve-btn { background-color: #27ae60; width: auto; padding: 8px 15px; margin: 0; }
     </style>
 </head>
 <body>
-    <div id="login-section" class="container">
+    <div id="login-section" class="container" style="max-width: 400px; margin-top: 10vh;">
         <h2>Admin Access</h2>
-        <input type="password" id="admin-password" placeholder="비밀번호를 입력하세요">
+        <input type="password" id="admin-password" placeholder="비밀번호">
         <button onclick="checkPassword()">접속하기</button>
         <p id="login-msg" style="color: #e74c3c;"></p>
     </div>
+
     <div id="admin-panel" class="container">
         <h2>관리자 페이지</h2>
-        <p>로그인에 성공했습니다. 다음 지시를 기다립니다.</p>
+        <div id="data-list">데이터를 불러오는 중...</div>
     </div>
+
     <script>
-      const SECRET_CODE = "4037";
-const SB_URL = "https://zkkhzsgaryoraytvsqbf.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2h6c2dhcnlvcmF5dHZzcWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5ODM5OTcsImV4cCI6MjA1MzU1OTk5N30.UJtqcka35dVssnZRuUk6zukfjF9UNX392Shd841GSQk"; 
+        const SECRET_CODE = "4037";
+        const SB_URL = "https://zkkhzsgaryoraytvsqbf.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2h6c2dhcnlvcmF5dHZzcWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5ODM5OTcsImV4cCI6MjA1MzU1OTk5N30.UJtqcka35dVssnZRuUk6zukfjF9UNX392Shd841GSQk"; 
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
-const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        function checkPassword() {
+            if (document.getElementById('admin-password').value === SECRET_CODE) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadMacSendingData();
+            } else {
+                document.getElementById('login-msg').innerText = "비밀번호 불일치";
+            }
+        }
 
-function checkPassword() {
-    const input = document.getElementById('admin-password').value;
-    if (input === SECRET_CODE) {
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
-        loadMacSendingData();
-    } else {
-        document.getElementById('login-msg').innerText = "비밀번호가 일치하지 않습니다.";
-    }
-}
-// 데이터를 표 형식으로 화면에 그려주는 함수 (컬럼명 'date' 반영)
-async function loadMacSendingData() {
-    const { data, error } = await supabaseClient
-        .from('MacSending')
-        .select('*')
-        .order('date', { ascending: false }); // 신청 시간(date) 순으로 정렬
+        async function loadMacSendingData() {
+            const { data, error } = await supabaseClient.from('MacSending').select('*').order('date', { ascending: false });
+            if (error) { alert('로드 실패: ' + error.message); return; }
 
-    if (error) {
-        alert('데이터 로드 실패: ' + error.message);
-        return;
-    }
-
-    const panel = document.getElementById('admin-panel');
-    let html = `<h2>관리자 페이지</h2>`;
-
-    if (data.length === 0) {
-        html += `<p>현재 대기 중인 요청이 없습니다.</p>`;
-    } else {
-        html += `<p style="margin-bottom: 20px;">현재 ${data.length}명의 요청이 있습니다.</p>`;
-        html += `<table style="width:100%; border-collapse: collapse; background-color: #34495e; color: white; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #2980b9;">
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">신청시간</th>
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">이름(연락처)</th>
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">맥주소</th>
-                            <th style="padding: 10px; border: 1px solid #1a2a3a;">설정 및 승인</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
-        data.forEach(item => {
-            // 시간 표시 (사용자님의 'date' 컬럼 사용)
-            const requestDate = item.date ? new Date(item.date).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '시간없음';
+            let html = `<p>현재 ${data.length}명의 요청이 있습니다.</p><table>
+                <thead><tr><th>신청시간</th><th>이름(연락처)</th><th>맥주소</th><th>설정 및 승인</th></tr></thead><tbody>`;
             
-            html += `<tr>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${requestDate}</td>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.name}<br>(${item.phone || '번호없음'})</td>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.mac_address}</td>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">
-                            <select id="prog-${item.id}" style="width: 120px; padding: 5px; margin-bottom: 5px;">
-                                <option value="${item.program}">${item.program} (기본)</option>
-                                <option value="Program_A">프로그램 A</option>
-                                <option value="Program_B">프로그램 B</option>
-                            </select><br>
-                            <input type="date" id="date-${item.id}" style="width: 120px; padding: 5px; margin-bottom: 5px;"><br>
-                            <button onclick="approveUser('${item.id}', '${item.name}', '${item.mac_address}')" 
-                                    style="background-color: #27ae60; padding: 5px 15px; width: auto; color: white; cursor: pointer; border-radius: 4px;">최종 승인</button>
-                        </td>
-                    </tr>`;
-        });
-        html += `</tbody></table>`;
-    }
-    panel.innerHTML = html;
-}
+            data.forEach(item => {
+                const rDate = item.date ? new Date(item.date).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+                html += `<tr>
+                    <td>${rDate}</td>
+                    <td>${item.name}<br>(${item.phone || '-'})</td>
+                    <td>${item.mac_address}</td>
+                    <td>
+                        <select id="prog-${item.id}" style="width:140px;">
+                            <option value="${item.program}">${item.program} (신청)</option>
+                            <option value="프로그램1">프로그램1</option><option value="프로그램2">프로그램2</option>
+                            <option value="프로그램3">프로그램3</option><option value="프로그램4">프로그램4</option>
+                            <option value="프로그램5">프로그램5</option><option value="프로그램6">프로그램6</option>
+                            <option value="프로그램7">프로그램7</option><option value="프로그램8">프로그램8</option>
+                        </select><br>
+                        <input type="date" id="date-${item.id}" style="width:140px;"><br>
+                        <button class="approve-btn" onclick="approveUser('${item.id}','${item.name}','${item.mac_address}')">승인</button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('data-list').innerHTML = html + `</tbody></table>`;
+        }
 
-function approveUser(id, name, mac) {
-    const selectedProg = document.getElementById(`prog-${id}`).value;
-    const selectedDate = document.getElementById(`date-${id}`).value;
+        async function approveUser(id, name, mac) {
+            const prog = document.getElementById(`prog-${id}`).value;
+            const expDate = document.getElementById(`date-${id}`).value;
+            if (!expDate) return alert("만료일을 선택하세요.");
 
-    if (!selectedDate) {
-        alert("만료일을 선택해 주세요.");
-        return;
-    }
+            if (confirm(`${name}님을 승인하시겠습니까?`)) {
+                // 1. 유료 테이블(MacAllowed)에 저장
+                const { error: insErr } = await supabaseClient.from('MacAllowed').insert([{ name, mac_address: mac, program: prog, expiration_date: expDate }]);
+                if (insErr) return alert("저장 실패: " + insErr.message);
 
-    if(confirm(`${name}님을 [${selectedProg}] 프로그램으로, [${selectedDate}]까지 승인하시겠습니까?`)) {
-        alert("승인 처리 로직을 구현할 준비가 되었습니다.");
-    }
-}
+                // 2. 신청 테이블(MacSending)에서 삭제
+                const { error: delErr } = await supabaseClient.from('MacSending').delete().eq('id', id);
+                if (delErr) return alert("삭제 실패: " + delErr.message);
+
+                alert("승인 완료!");
+                loadMacSendingData(); // 목록 새로고침
+            }
+        }
     </script>
 </body>
 </html>
