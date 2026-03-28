@@ -7,15 +7,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #1a2a3a; color: #e0eafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .container { background-color: #2c3e50; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); width: 100%; max-width: 900px; text-align: center; }
-        #admin-panel { display: none; width: 100%; overflow-x: auto; } /* 가로 스크롤 추가 */
-        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
+        .container { background-color: #2c3e50; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); width: 100%; max-width: 950px; text-align: center; }
+        #admin-panel { display: none; width: 100%; }
+        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 20px; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; font-size: 14px; }
         input, select { background-color: #34495e; color: white; }
         button { background-color: #3498db; color: white; font-weight: bold; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #1a2a3a; text-align: center; font-size: 14px; }
-        th { background-color: #2980b9; }
-        .approve-btn { background-color: #27ae60; width: auto; padding: 8px 15px; margin: 0; }
+        table { width: 100%; border-collapse: collapse; min-width: 750px; }
+        th, td { padding: 12px 8px; border: 1px solid #1a2a3a; text-align: center; font-size: 13px; }
+        th { background-color: #2980b9; white-space: nowrap; }
+        .approve-btn { background-color: #27ae60; width: auto; padding: 8px 15px; margin: 5px 0; color: white; border-radius: 4px; }
+        .mac-text { font-family: monospace; font-size: 12px; color: #bdc3c7; }
     </style>
 </head>
 <body>
@@ -28,7 +30,9 @@
 
     <div id="admin-panel" class="container">
         <h2>관리자 페이지</h2>
-        <div id="data-list">데이터를 불러오는 중...</div>
+        <div class="table-wrapper">
+            <div id="data-list">데이터를 불러오는 중...</div>
+        </div>
     </div>
 
     <script>
@@ -51,25 +55,35 @@
             const { data, error } = await supabaseClient.from('MacSending').select('*').order('date', { ascending: false });
             if (error) { alert('로드 실패: ' + error.message); return; }
 
-            let html = `<p>현재 ${data.length}명의 요청이 있습니다.</p><table>
-                <thead><tr><th>신청시간</th><th>이름(연락처)</th><th>맥주소</th><th>설정 및 승인</th></tr></thead><tbody>`;
+            if (data.length === 0) {
+                document.getElementById('data-list').innerHTML = "<p>현재 대기 중인 요청이 없습니다.</p>";
+                return;
+            }
+
+            let html = `<table><thead><tr><th>신청시간</th><th>이름(연락처)</th><th>맥주소</th><th>프로그램/만료일/승인</th></tr></thead><tbody>`;
             
             data.forEach(item => {
                 const rDate = item.date ? new Date(item.date).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+                
                 html += `<tr>
                     <td>${rDate}</td>
-                    <td>${item.name}<br>(${item.phone || '-'})</td>
-                    <td>${item.mac_address}</td>
+                    <td>${item.name}<br><small>(${item.phone || '-'})</small></td>
+                    <td class="mac-text">${item.mac_address}</td>
                     <td>
                         <select id="prog-${item.id}" style="width:140px;">
-                            <option value="${item.program}">${item.program} (신청)</option>
-                            <option value="프로그램1">프로그램1</option><option value="프로그램2">프로그램2</option>
-                            <option value="프로그램3">프로그램3</option><option value="프로그램4">프로그램4</option>
-                            <option value="프로그램5">프로그램5</option><option value="프로그램6">프로그램6</option>
-                            <option value="프로그램7">프로그램7</option><option value="프로그램8">프로그램8</option>
+                            <option value="${item.program}">${item.program}</option>
+                            <option value="순서">순서</option>
+                            <option value="삽입">삽입</option>
+                            <option value="단어">단어</option>
+                            <option value="동반의어">동반의어</option>
+                            <option value="영영풀이">영영풀이</option>
+                            <option value="동의어출제">동의어출제</option>
+                            <option value="PDFPrint">PDFPrint</option>
+                            <option value="배열서술형">배열서술형</option>
+                            <option value="한줄해석">한줄해석</option>
                         </select><br>
                         <input type="date" id="date-${item.id}" style="width:140px;"><br>
-                        <button class="approve-btn" onclick="approveUser('${item.id}','${item.name}','${item.mac_address}')">승인</button>
+                        <button class="approve-btn" onclick="approveUser('${item.id}','${item.name}','${item.mac_address}')">최종 승인</button>
                     </td>
                 </tr>`;
             });
@@ -81,16 +95,21 @@
             const expDate = document.getElementById(`date-${id}`).value;
             if (!expDate) return alert("만료일을 선택하세요.");
 
-            if (confirm(`${name}님을 승인하시겠습니까?`)) {
+            if (confirm(`${name}님을 [${prog}]으로 승인하시겠습니까?`)) {
                 // 1. 유료 테이블(MacAllowed)에 저장
-                const { error: insErr } = await supabaseClient.from('MacAllowed').insert([{ name, mac_address: mac, program: prog, expiration_date: expDate }]);
+                const { error: insErr } = await supabaseClient.from('MacAllowed').insert([{ 
+                    name: name, 
+                    mac_address: mac, 
+                    program: prog, 
+                    expiration_date: expDate 
+                }]);
                 if (insErr) return alert("저장 실패: " + insErr.message);
 
                 // 2. 신청 테이블(MacSending)에서 삭제
                 const { error: delErr } = await supabaseClient.from('MacSending').delete().eq('id', id);
                 if (delErr) return alert("삭제 실패: " + delErr.message);
 
-                alert("승인 완료!");
+                alert("승인 완료되었습니다.");
                 loadMacSendingData(); // 목록 새로고침
             }
         }
