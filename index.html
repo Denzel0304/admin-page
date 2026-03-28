@@ -71,13 +71,12 @@ function checkPassword() {
         document.getElementById('login-msg').innerText = "비밀번호가 일치하지 않습니다.";
     }
 }
-// 데이터를 표 형식으로 화면에 그려주는 함수
-// 데이터를 표 형식으로 화면에 그려주는 함수 (연락처, 시간 추가)
+// 데이터를 표 형식으로 화면에 그려주는 함수 (컬럼명 'date' 반영)
 async function loadMacSendingData() {
     const { data, error } = await supabaseClient
         .from('MacSending')
         .select('*')
-        .order('created_at', { ascending: false }); // 최신순 정렬
+        .order('date', { ascending: false }); // 신청 시간(date) 순으로 정렬
 
     if (error) {
         alert('데이터 로드 실패: ' + error.message);
@@ -103,11 +102,11 @@ async function loadMacSendingData() {
                     <tbody>`;
         
         data.forEach(item => {
-            // 시간 포맷 변경 (예: 03-28 18:30)
-            const date = new Date(item.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            // 시간 표시 (사용자님의 'date' 컬럼 사용)
+            const requestDate = item.date ? new Date(item.date).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '시간없음';
             
             html += `<tr>
-                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${date}</td>
+                        <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${requestDate}</td>
                         <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.name}<br>(${item.phone || '번호없음'})</td>
                         <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">${item.mac_address}</td>
                         <td style="padding: 10px; border: 1px solid #1a2a3a; text-align: center;">
@@ -115,7 +114,6 @@ async function loadMacSendingData() {
                                 <option value="${item.program}">${item.program} (기본)</option>
                                 <option value="Program_A">프로그램 A</option>
                                 <option value="Program_B">프로그램 B</option>
-                                <option value="Premium_Full">프리미엄 전체</option>
                             </select><br>
                             <input type="date" id="date-${item.id}" style="width: 120px; padding: 5px; margin-bottom: 5px;"><br>
                             <button onclick="approveUser('${item.id}', '${item.name}', '${item.mac_address}')" 
@@ -128,7 +126,6 @@ async function loadMacSendingData() {
     panel.innerHTML = html;
 }
 
-// 승인 버튼 클릭 시 실행
 function approveUser(id, name, mac) {
     const selectedProg = document.getElementById(`prog-${id}`).value;
     const selectedDate = document.getElementById(`date-${id}`).value;
@@ -139,8 +136,7 @@ function approveUser(id, name, mac) {
     }
 
     if(confirm(`${name}님을 [${selectedProg}] 프로그램으로, [${selectedDate}]까지 승인하시겠습니까?`)) {
-        alert("이제 이 데이터를 '유료 테이블'로 옮기는 명령을 실행합니다.");
-        // 실제 데이터 이동 로직은 다음 단계에서 Supabase insert/delete로 구현합니다.
+        alert("승인 처리 로직을 구현할 준비가 되었습니다.");
     }
 }
     </script>
