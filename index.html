@@ -99,7 +99,7 @@
 
                 // 년도 옵션
                 let yearOptions = '';
-                for (let y = 2024; y <= 2027; y++) {
+                for (let y = 2025; y <= 2030; y++) {
                     yearOptions += `<option value="${y}">${y}</option>`;
                 }
 
@@ -110,7 +110,6 @@
                     <td class="request-text">${item.program}</td>
                     <td>
                         <select id="prog-${item.id}" class="prog-select" onchange="onProgChange('${item.id}')">
-                            <option value="모고24">모고24</option>
                             <option value="순서">순서</option>
                             <option value="삽입">삽입</option>
                             <option value="단어">단어</option>
@@ -120,6 +119,7 @@
                             <option value="PDFPrint">PDFPrint</option>
                             <option value="배열서술형">배열서술형</option>
                             <option value="한줄해석">한줄해석</option>
+                            <option value="모고24">모고24</option>
                         </select>
                         <div id="mogo-${item.id}" class="mogo-selects">
                             <select id="mogo-year-${item.id}">
