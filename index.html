@@ -50,20 +50,30 @@
     </div>
 
     <script>
-        const SECRET_CODE = "4037";
+        const SECRET_CODE = "ss2412";
         const SB_URL = "https://zkkhzsgaryoraytvsqbf.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2h6c2dhcnlvcmF5dHZzcWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5ODM5OTcsImV4cCI6MjA1MzU1OTk5N30.UJtqcka35dVssnZRuUk6zukfjF9UNX392Shd841GSQk";
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
         function checkPassword() {
-            if (document.getElementById('admin-password').value === SECRET_CODE) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-                loadMacSendingData();
-            } else {
-                document.getElementById('login-msg').innerText = "비밀번호 불일치";
-            }
-        }
+    if (document.getElementById('admin-password').value === SECRET_CODE) {
+        localStorage.setItem('admin_auth', 'true');
+        showAdminPanel();
+    } else {
+        document.getElementById('login-msg').innerText = "비밀번호 불일치";
+    }
+}
+
+function showAdminPanel() {
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadMacSendingData();
+}
+
+// 페이지 로드 시 자동로그인 확인
+if (localStorage.getItem('admin_auth') === 'true') {
+    showAdminPanel();
+}
 
         function onProgChange(id) {
             const prog = document.getElementById(`prog-${id}`).value;
