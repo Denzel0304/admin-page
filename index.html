@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Management</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #1a2a3a; color: #e0eafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background-color: #2c3e50; padding: 15px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); width: 100%; max-width: 1200px; text-align: center; box-sizing: border-box; }
@@ -50,30 +49,34 @@
     </div>
 
     <script>
-        const SECRET_CODE = "ss2412";
-        const SB_URL = "https://zkkhzsgaryoraytvsqbf.supabase.co";
-        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2h6c2dhcnlvcmF5dHZzcWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5ODM5OTcsImV4cCI6MjA1MzU1OTk5N30.UJtqcka35dVssnZRuUk6zukfjF9UNX392Shd841GSQk";
-        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const GAS_URL = "https://script.google.com/macros/s/AKfycby4yhmSHbcSGzZCR3U-G2HgMY5nbBg-2PAnImUkwns8mstZbwDB9jevB-TH31n9KJwTbQ/exec";
 
-        function checkPassword() {
-    if (document.getElementById('admin-password').value === SECRET_CODE) {
-        localStorage.setItem('admin_auth', 'true');
-        showAdminPanel();
-    } else {
-        document.getElementById('login-msg').innerText = "비밀번호 불일치";
-    }
-}
+        async function gasCall(params) {
+            const url = GAS_URL + "?" + new URLSearchParams(params).toString();
+            const res = await fetch(url);
+            return await res.json();
+        }
 
-function showAdminPanel() {
-    document.getElementById('login-section').style.display = 'none';
-    document.getElementById('admin-panel').style.display = 'block';
-    loadMacSendingData();
-}
+        async function checkPassword() {
+            const pw = document.getElementById('admin-password').value;
+            const result = await gasCall({ action: "checkPassword", password: pw });
+            if (result.success) {
+                localStorage.setItem('admin_auth', 'true');
+                showAdminPanel();
+            } else {
+                document.getElementById('login-msg').innerText = "비밀번호 불일치";
+            }
+        }
 
-// 페이지 로드 시 자동로그인 확인
-if (localStorage.getItem('admin_auth') === 'true') {
-    showAdminPanel();
-}
+        function showAdminPanel() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
+            loadMacSendingData();
+        }
+
+        if (localStorage.getItem('admin_auth') === 'true') {
+            showAdminPanel();
+        }
 
         function onProgChange(id) {
             const prog = document.getElementById(`prog-${id}`).value;
@@ -94,8 +97,10 @@ if (localStorage.getItem('admin_auth') === 'true') {
         }
 
         async function loadMacSendingData() {
-            const { data, error } = await supabaseClient.from('MacSending').select('*').order('date', { ascending: false });
-            if (error) { alert('로드 실패: ' + error.message); return; }
+            const result = await gasCall({ action: "getList" });
+            if (!result.success) { alert('로드 실패: ' + result.message); return; }
+
+            const data = result.data;
 
             if (data.length === 0) {
                 document.getElementById('data-list').innerHTML = "<p style='padding:40px; font-size:18px;'>대기 중인 요청이 없습니다.</p>";
@@ -107,7 +112,6 @@ if (localStorage.getItem('admin_auth') === 'true') {
             data.forEach(item => {
                 const rDate = item.date ? new Date(item.date).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
 
-                // 년도 옵션
                 let yearOptions = '';
                 for (let y = 2025; y <= 2030; y++) {
                     yearOptions += `<option value="${y}">${y}</option>`;
@@ -176,7 +180,6 @@ if (localStorage.getItem('admin_auth') === 'true') {
                 finalExpiry = `${rawDate} 23:59:59`;
             }
 
-            // 모고24 분기
             if (prog === '모고24') {
                 const mogoCode = buildMogoCode(id);
                 if (!mogoCode) {
@@ -184,36 +187,15 @@ if (localStorage.getItem('admin_auth') === 'true') {
                     return;
                 }
                 if (confirm(`${name}님을 [${mogoCode}]으로 승인하시겠습니까?\n테이블: authkey\n만료일: ${finalExpiry}`)) {
-                    const { error: insErr } = await supabaseClient.from('authkey').insert([{
-                        name: name,
-                        phone: phone,
-                        mac_address: mac,
-                        program: mogoCode,
-                        expiry_date: finalExpiry
-                    }]);
-                    if (insErr) return alert("authkey 테이블 저장 실패: " + insErr.message);
-
-                    const { error: delErr } = await supabaseClient.from('MacSending').delete().eq('id', id);
-                    if (delErr) return alert("MacSending 삭제 실패: " + delErr.message);
-
+                    const result = await gasCall({ action: "approveMogo", id, name, mac, phone, mogoCode, expiry: finalExpiry });
+                    if (!result.success) return alert(result.message);
                     alert("승인 완료되었습니다. (authkey)");
                     loadMacSendingData();
                 }
             } else {
-                // 기존 Paid 로직 그대로
                 if (confirm(`${name}님을 [${prog}]으로 승인하시겠습니까?\n만료일: ${finalExpiry}`)) {
-                    const { error: insErr } = await supabaseClient.from('Paid').insert([{
-                        name: name,
-                        phone: phone,
-                        mac_address: mac,
-                        program: prog,
-                        expiry_date: finalExpiry
-                    }]);
-                    if (insErr) return alert("Paid 테이블 저장 실패: " + insErr.message);
-
-                    const { error: delErr } = await supabaseClient.from('MacSending').delete().eq('id', id);
-                    if (delErr) return alert("MacSending 삭제 실패: " + delErr.message);
-
+                    const result = await gasCall({ action: "approvePaid", id, name, mac, phone, prog, expiry: finalExpiry });
+                    if (!result.success) return alert(result.message);
                     alert("승인 완료되었습니다.");
                     loadMacSendingData();
                 }
