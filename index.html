@@ -51,33 +51,36 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycby4yhmSHbcSGzZCR3U-G2HgMY5nbBg-2PAnImUkwns8mstZbwDB9jevB-TH31n9KJwTbQ/exec";
 
-        async function gasCall(params) {
+       // 1. gasCall - 토큰 자동 포함
+async function gasCall(params) {
+  const token = localStorage.getItem('admin_token');
   const res = await fetch(GAS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(params).toString()
+    body: new URLSearchParams({ ...params, token }).toString()
   });
   return await res.json();
 }
 
-        async function checkPassword() {
-            const pw = document.getElementById('admin-password').value;
-            const result = await gasCall({ action: "checkPassword", password: pw });
-            if (result.success) {
-                localStorage.setItem('admin_auth', 'true');
-                showAdminPanel();
-            } else {
-                document.getElementById('login-msg').innerText = "비밀번호 불일치";
-            }
-        }
+        // 2. checkPassword - 토큰 저장 추가
+async function checkPassword() {
+  const pw = document.getElementById('admin-password').value;
+  const result = await gasCall({ action: "checkPassword", password: pw });
+  if (result.success) {
+    localStorage.setItem('admin_auth', 'true');
+    localStorage.setItem('admin_token', result.token);
+    showAdminPanel();
+  } else {
+    document.getElementById('login-msg').innerText = "비밀번호 불일치";
+  }
+}
 
         function showAdminPanel() {
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
             loadMacSendingData();
         }
-
-        if (localStorage.getItem('admin_auth') === 'true') {
+        if (localStorage.getItem('admin_auth') === 'true' && localStorage.getItem('admin_token')) {
             showAdminPanel();
         }
 
